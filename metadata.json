@@ -1,0 +1,6 @@
+{
+  "name": "Rozana Salon | صالون روزانة",
+  "description": "Luxury Hair Care & Spa in Al Shumaisi, Riyadh. Customer booking portal and dynamic admin management dashboard with Arabic & English support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

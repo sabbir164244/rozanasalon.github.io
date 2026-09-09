@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .font-cormorant {
+    font-family: 'Cormorant Garamond', serif;
+  }
+  .font-playfair {
+    font-family: 'Playfair Display', serif;
+  }
+  .font-tajawal {
+    font-family: 'Tajawal', sans-serif;
+  }
+  .font-cinzel {
+    font-family: 'Cinzel', serif;
+  }
+  .font-sans {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  
+  /* Haute-Luxe Metallic Champagne Text */
+  .gold-gradient-text {
+    background: linear-gradient(135deg, #FFF6E5 0%, #DFBE74 35%, #F5E0A3 60%, #B89243 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .gold-metallic-subtle {
+    color: #E2C78E;
+    text-shadow: 0 0 20px rgba(212, 175, 55, 0.25);
+  }
+
+  /* Ultra Luxury Glass Cards */
+  .luxe-card {
+    background: linear-gradient(180deg, rgba(26, 24, 20, 0.75) 0%, rgba(14, 13, 11, 0.85) 100%);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(212, 175, 55, 0.18);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 245, 220, 0.08);
+  }
+
+  .luxe-card-hover {
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .luxe-card-hover:hover {
+    border-color: rgba(212, 175, 55, 0.4);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75), 0 0 30px rgba(212, 175, 55, 0.12), inset 0 1px 0 rgba(255, 245, 220, 0.15);
+    transform: translateY(-2px);
+  }
+
+  /* Obsidian background with warm royal champagne ambient light */
+  .luxe-obsidian-bg {
+    background-color: #0A0908;
+    background-image: 
+      radial-gradient(circle at 50% -10%, rgba(212, 175, 55, 0.1) 0%, transparent 60%),
+      radial-gradient(circle at 90% 40%, rgba(160, 120, 40, 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 10% 80%, rgba(180, 140, 50, 0.04) 0%, transparent 50%),
+      linear-gradient(180deg, #0B0A09 0%, #070605 100%);
+  }
+
+  .luxe-gold-btn {
+    background: linear-gradient(135deg, #C59D4A 0%, #E7C97E 50%, #B88E3B 100%);
+    color: #0E0C09;
+    font-weight: 700;
+    box-shadow: 0 4px 20px rgba(212, 175, 55, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+    transition: all 0.3s ease;
+  }
+  .luxe-gold-btn:hover {
+    background: linear-gradient(135deg, #D4AF57 0%, #F5DCA0 50%, #C79E4B 100%);
+    box-shadow: 0 6px 30px rgba(212, 175, 55, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+    transform: translateY(-1px);
+  }
+}
+
+/* Custom refined scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0A0908;
+}
+::-webkit-scrollbar-thumb {
+  background: #252119;
+  border-radius: 9999px;
+  border: 1px solid rgba(212, 175, 55, 0.15);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3B3324;
+}
+
