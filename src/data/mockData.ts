@@ -1,4 +1,16 @@
-import { Service, StaffMember, Appointment, SalonReview, SalonSettings } from '../types';
+import { 
+  Service, 
+  StaffMember, 
+  Appointment, 
+  SalonReview, 
+  SalonSettings, 
+  AdminSecurityConfig, 
+  VipPackage, 
+  SalonSuite, 
+  TransformationItem,
+  GiftCard,
+  AuditLogEntry 
+} from '../types';
 
 export const INITIAL_SERVICES: Service[] = [
   {
@@ -435,7 +447,20 @@ export const SALON_SETTINGS: SalonSettings = {
   phone: '+966 11 412 8890',
   whatsapp: '+966 50 882 1245',
   rating: 4.2,
-  totalReviews: 348
+  totalReviews: 348,
+  heroTaglineEn: 'Haute Beauty Sanctuary in Al Shumaisi, Riyadh',
+  heroTaglineAr: 'واحة الجمال الملكي الفاخر في قلب الشميسي بالرياض',
+  heroSubEn: 'Dedicated to Saudi women of distinction. Where royal indulgence meets medical-grade hair & aesthetic perfection.',
+  heroSubAr: 'وجهة المرأة العصرية للجمال والأناقة الملكية. تجربة استرخاء راقية تجمع بين أعلى معايير العناية والتعقيم وأمهر خبيرات التجميل.',
+  heroBannerImg: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1600&auto=format&fit=crop&q=80'
+};
+
+export const INITIAL_ADMIN_SECURITY: AdminSecurityConfig = {
+  email: 'admin@rozanasalon.sa',
+  password: 'rozana2026',
+  recoveryQuestion: 'What is the founding branch location of Rozana Salon?',
+  recoveryAnswer: 'Al Shumaisi',
+  lastUpdated: '2026-09-09'
 };
 
 // Strict Operating Hours: 12:00 PM to 11:00 PM
@@ -577,23 +602,6 @@ CREATE INDEX idx_services_category ON services (category);
   }
 };
 
-export interface VipPackage {
-  id: string;
-  titleEn: string;
-  titleAr: string;
-  taglineEn: string;
-  taglineAr: string;
-  priceSAR: number;
-  originalPriceSAR: number;
-  durationMin: number;
-  badgeEn: string;
-  badgeAr: string;
-  servicesIncludedEn: string[];
-  servicesIncludedAr: string[];
-  imageUrl: string;
-  popular?: boolean;
-}
-
 export const VIP_PACKAGES: VipPackage[] = [
   {
     id: 'pkg-royal-bride',
@@ -671,19 +679,6 @@ export const VIP_PACKAGES: VipPackage[] = [
   }
 ];
 
-export interface SalonSuite {
-  id: string;
-  nameEn: string;
-  nameAr: string;
-  titleEn: string;
-  titleAr: string;
-  descriptionEn: string;
-  descriptionAr: string;
-  featuresEn: string[];
-  featuresAr: string[];
-  imageUrl: string;
-}
-
 export const SALON_SUITES: SalonSuite[] = [
   {
     id: 'suite-facial',
@@ -735,25 +730,6 @@ export const SALON_SUITES: SalonSuite[] = [
   }
 ];
 
-export interface TransformationItem {
-  id: string;
-  titleEn: string;
-  titleAr: string;
-  categoryEn: string;
-  categoryAr: string;
-  serviceId: string;
-  beforeLabelEn: string;
-  beforeLabelAr: string;
-  afterLabelEn: string;
-  afterLabelAr: string;
-  descriptionEn: string;
-  descriptionAr: string;
-  beforeImage: string;
-  afterImage: string;
-  specialistEn: string;
-  specialistAr: string;
-}
-
 export const TRANSFORMATIONS: TransformationItem[] = [
   {
     id: 'tr-keratin',
@@ -790,5 +766,207 @@ export const TRANSFORMATIONS: TransformationItem[] = [
     afterImage: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=800&auto=format&fit=crop&q=80',
     specialistEn: 'Layla Al-Khatib',
     specialistAr: 'ليلى الخطيب'
+  }
+];
+
+export const INITIAL_GIFT_CARDS: GiftCard[] = [
+  {
+    id: 'gift-001',
+    code: 'ROZ-GOLD-500',
+    amountSAR: 500,
+    remainingBalanceSAR: 500,
+    senderName: 'سارة الغامدي (Sarah Al-Ghamdi)',
+    senderEmail: 'sarah.ghamdi@gmail.com',
+    senderPhone: '+966 55 123 7890',
+    recipientName: 'مها العتيبي (Maha Al-Otaibi)',
+    recipientEmail: 'maha.otaibi@hotmail.com',
+    recipientPhone: '+966 50 987 6543',
+    personalMessage: 'ألف مبروك الترقية يا أغلى أخت! استمتعي بدلال ملكي في صالون روزانة الفاخر بالشميسي ❤️',
+    designTheme: 'gold-onyx',
+    deliveryType: 'instant',
+    status: 'active',
+    issuedAt: '2026-09-01T14:30:00Z',
+    expiresAt: '2027-09-01T23:59:59Z',
+    paymentMethod: 'Apple Pay',
+    paymentRef: 'PAY-APL-883491',
+    redemptionHistory: []
+  },
+  {
+    id: 'gift-002',
+    code: 'ROZ-ROYAL-1000',
+    amountSAR: 1000,
+    remainingBalanceSAR: 350,
+    senderName: 'فهد الشهري (Fahad Al-Shehri)',
+    senderEmail: 'fahad.shehri@outlook.sa',
+    senderPhone: '+966 54 888 2233',
+    recipientName: 'هيا الشهري (Haya Al-Shehri)',
+    recipientEmail: 'haya.shehri@gmail.com',
+    recipientPhone: '+966 56 444 1122',
+    personalMessage: 'عيد ميلاد سعيد لزوجتي الحبيبة، أتمنى لك يوماً ساحراً في واحة الجمال والاسترخاء.',
+    designTheme: 'royal-rose',
+    deliveryType: 'instant',
+    status: 'partially_redeemed',
+    issuedAt: '2026-08-20T10:15:00Z',
+    expiresAt: '2027-08-20T23:59:59Z',
+    paymentMethod: 'Mada Debit',
+    paymentRef: 'PAY-MADA-492104',
+    redemptionHistory: [
+      {
+        id: 'red-001',
+        date: '2026-08-25T16:00:00Z',
+        amountSAR: 650,
+        appointmentRef: 'ROZ-9103',
+        note: 'Applied towards Brazilian Nano-Keratin Therapy',
+        performedBy: 'Staff Cashier (Rozana Desk)'
+      }
+    ]
+  },
+  {
+    id: 'gift-003',
+    code: 'ROZ-SPA-250',
+    amountSAR: 250,
+    remainingBalanceSAR: 250,
+    senderName: 'نوف الدوسري (Nouf Al-Dosari)',
+    senderEmail: 'nouf.dosari@yahoo.com',
+    senderPhone: '+966 50 123 4567',
+    recipientName: 'ريم القحطاني (Reem Al-Qahtani)',
+    recipientEmail: 'reem.qahtani@gmail.com',
+    recipientPhone: '+966 53 777 9900',
+    personalMessage: 'هدية شكر وامتنان لصديقتي الصدوقة! جلسة مساج واستجمام تستحقينها.',
+    designTheme: 'emerald-palace',
+    deliveryType: 'instant',
+    status: 'active',
+    issuedAt: '2026-09-08T18:45:00Z',
+    expiresAt: '2027-09-08T23:59:59Z',
+    paymentMethod: 'Credit Card (Visa)',
+    paymentRef: 'PAY-VISA-710294',
+    redemptionHistory: []
+  },
+  {
+    id: 'gift-004',
+    code: 'ROZ-BRIDE-2500',
+    amountSAR: 2500,
+    remainingBalanceSAR: 0,
+    senderName: 'د. لولوة السديري (Dr. Lulwah)',
+    senderEmail: 'lulwah.sudairi@hospital.med.sa',
+    senderPhone: '+966 50 555 1212',
+    recipientName: 'ديمة آل سعود (Deema)',
+    recipientEmail: 'deema@luxury.sa',
+    recipientPhone: '+966 55 999 8888',
+    personalMessage: 'مبارك يا أحلى عروس! باقة العناية الشاملة الملكية قبل ليلة العمر.',
+    designTheme: 'gold-onyx',
+    deliveryType: 'scheduled',
+    scheduledDate: '2026-08-01',
+    status: 'redeemed',
+    issuedAt: '2026-07-28T09:00:00Z',
+    expiresAt: '2027-07-28T23:59:59Z',
+    paymentMethod: 'Apple Pay',
+    paymentRef: 'PAY-APL-109482',
+    redemptionHistory: [
+      {
+        id: 'red-002',
+        date: '2026-08-05T13:00:00Z',
+        amountSAR: 2500,
+        appointmentRef: 'ROZ-BRIDE-01',
+        note: 'Full redemption for VIP Royal Bride Sanctum package & private suite',
+        performedBy: 'Rozana Manager'
+      }
+    ]
+  }
+];
+
+export const INITIAL_AUDIT_LOGS: AuditLogEntry[] = [
+  {
+    id: 'log-001',
+    timestamp: '2026-09-12T11:45:00Z',
+    category: 'services',
+    actionType: 'price_change',
+    titleAr: 'تحديث تسعيرة خدمة الكولاجين الملكي',
+    titleEn: 'Service Price Updated: Onyx Glow Collagen',
+    detailsAr: 'تم تعديل سعر خدمة "جلسة نضارة كولاجين الأونيكس" من 260 ر.س إلى 290 ر.س تماشياً مع ترقية المستحضرات الإيطالية المستخدمة.',
+    detailsEn: 'Price for "Onyx Glow Collagen Facial" updated from 260 SAR to 290 SAR in accordance with upgraded Italian organic serums.',
+    actor: 'Director (Admin)',
+    targetId: 'srv-facial-gold',
+    targetName: 'Onyx Glow Collagen Facial',
+    previousValue: '260 SAR',
+    newValue: '290 SAR',
+    severity: 'warning'
+  },
+  {
+    id: 'log-002',
+    timestamp: '2026-09-12T10:30:00Z',
+    category: 'bookings',
+    actionType: 'booking_status',
+    titleAr: 'تأكيد حجز العروس الملكية',
+    titleEn: 'Booking Status Modified: Confirmed',
+    detailsAr: 'تم تغيير حالة حجز العروس (#ROZ-8821) للعميلة ريم آل سعود من "جديد" إلى "مؤكد" وتخصيص الجناح الإمبراطوري.',
+    detailsEn: 'Status for reservation #ROZ-8821 (Reem Al-Saud) updated from "new" to "confirmed" with Imperial Suite reservation.',
+    actor: 'Rozana Manager',
+    targetId: 'apt-001',
+    targetName: 'Reservation #ROZ-8821',
+    previousValue: 'new',
+    newValue: 'confirmed',
+    severity: 'success'
+  },
+  {
+    id: 'log-003',
+    timestamp: '2026-09-12T09:15:00Z',
+    category: 'staff',
+    actionType: 'staff_update',
+    titleAr: 'تحديث جدول وتوفر الخبيرة أنتونيلا',
+    titleEn: 'Staff Availability Updated: Antonella Covello',
+    detailsAr: 'تم تفعيل التواجد واستقبال المواعيد اليومية للخبيرة الإيطالية أنتونيلا كوفيلو لخدمات صبغات البالاج والقص الملكي.',
+    detailsEn: 'Antonella Covello marked active and available for royal balayage & styling appointments today.',
+    actor: 'Head Supervisor',
+    targetId: 'st-1',
+    targetName: 'Antonella Covello',
+    previousValue: 'Unavailable',
+    newValue: 'Available Today',
+    severity: 'info'
+  },
+  {
+    id: 'log-004',
+    timestamp: '2026-09-11T16:20:00Z',
+    category: 'services',
+    actionType: 'service_edit',
+    titleAr: 'إضافة ميزة إضافية لباقة العروس الذهب',
+    titleEn: 'Service Details Updated: Royal Bridal Package',
+    detailsAr: 'تم تحديث مدة الجلسة إلى 180 دقيقة وإضافة فحص البشرة الميكروسكوبي مجاناً لجميع الحجوزات القادمة.',
+    detailsEn: 'Updated session duration to 180 min and bundled complimentary microscopic skin analysis.',
+    actor: 'Director (Admin)',
+    targetId: 'srv-bridal-royal',
+    targetName: 'Royal Bridal Sanctum Package',
+    previousValue: 'Duration: 150 min',
+    newValue: 'Duration: 180 min',
+    severity: 'info'
+  },
+  {
+    id: 'log-005',
+    timestamp: '2026-09-11T14:10:00Z',
+    category: 'giftcards',
+    actionType: 'giftcard_redemption',
+    titleAr: 'صرف بطاقة إهداء فاخرة',
+    titleEn: 'Gift Card Redeemed: ROZ-GOLD-500',
+    detailsAr: 'تم خصم 380 ر.س من بطاقة الإهداء ROZ-GOLD-500 لسداد جلسة مساج ونضارة الوجه للمستفيدة مها الحربي.',
+    detailsEn: 'Deducted 380 SAR from card ROZ-GOLD-500 for royal facial treatment (Maha Al-Harbi). Remaining balance: 120 SAR.',
+    actor: 'Booking Engine',
+    targetId: 'gift-001',
+    targetName: 'ROZ-GOLD-500',
+    previousValue: 'Balance: 500 SAR',
+    newValue: 'Balance: 120 SAR',
+    severity: 'success'
+  },
+  {
+    id: 'log-006',
+    timestamp: '2026-09-10T11:00:00Z',
+    category: 'security',
+    actionType: 'security_update',
+    titleAr: 'تحديث معايير أمان البوابة الإدارية',
+    titleEn: 'Admin Gateway Security Verified',
+    detailsAr: 'تم التحقق من تشفير بيانات تسجيل الدخول وتثبيت كلمة المرور المشفرة وسؤال الاسترداد السري بنجاح.',
+    detailsEn: 'Verified admin gateway credentials and reset recovery challenge parameters.',
+    actor: 'System / Director',
+    targetName: 'Admin Security Credentials',
+    severity: 'alert'
   }
 ];

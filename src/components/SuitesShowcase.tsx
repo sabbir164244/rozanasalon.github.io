@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { SALON_SUITES, SalonSuite } from '../data/mockData';
+import { SALON_SUITES } from '../data/mockData';
+import { SalonSuite } from '../types';
 import { Sparkles, Shield, Check, Eye, Coffee } from 'lucide-react';
 
 interface SuitesShowcaseProps {
+  suites?: SalonSuite[];
   onBookSuite: () => void;
 }
 
-export const SuitesShowcase: React.FC<SuitesShowcaseProps> = ({ onBookSuite }) => {
+export const SuitesShowcase: React.FC<SuitesShowcaseProps> = ({ 
+  suites = SALON_SUITES,
+  onBookSuite 
+}) => {
   const { language, isRTL } = useLanguage();
-  const [selectedSuite, setSelectedSuite] = useState<SalonSuite>(SALON_SUITES[0]);
+  const [selectedSuite, setSelectedSuite] = useState<SalonSuite>(suites[0] || SALON_SUITES[0]);
 
   return (
     <section id="suites" className="relative py-24 px-4 sm:px-6 lg:px-8 bg-[#0B0A08] overflow-hidden border-t border-[#D4AF37]/15">
@@ -35,8 +40,8 @@ export const SuitesShowcase: React.FC<SuitesShowcaseProps> = ({ onBookSuite }) =
 
         {/* Interactive Suite Selector Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-10">
-          {SALON_SUITES.map((suite) => {
-            const isSelected = selectedSuite.id === suite.id;
+          {suites.map((suite) => {
+            const isSelected = selectedSuite?.id === suite.id;
             return (
               <button
                 key={suite.id}
@@ -49,7 +54,7 @@ export const SuitesShowcase: React.FC<SuitesShowcaseProps> = ({ onBookSuite }) =
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-mono text-[#E5C378]">
-                    0{SALON_SUITES.indexOf(suite) + 1}
+                    0{suites.indexOf(suite) + 1}
                   </span>
                   {isSelected && (
                     <span className="w-2 h-2 rounded-full bg-[#E5C378] animate-pulse" />

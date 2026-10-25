@@ -1,20 +1,32 @@
 import React from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { SalonSettings } from '../types';
 import { Sparkles, Calendar, ArrowRight, Star, Clock, MapPin, ShieldCheck, Compass } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface HeroProps {
+  settings?: SalonSettings;
   onBookNow: () => void;
   onExploreServices: () => void;
   onOpenAdvisor: () => void;
 }
 
 export const Hero: React.FC<HeroProps> = ({
+  settings,
   onBookNow,
   onExploreServices,
   onOpenAdvisor,
 }) => {
   const { isRTL, t, language } = useLanguage();
+
+  const operatingHoursText = settings 
+    ? (language === 'ar' ? `ساعات العمل اليوم: ${settings.openHour} – ${settings.closeHour}` : `Hours: ${settings.openHour} – ${settings.closeHour} Daily`)
+    : (language === 'ar' ? 'ساعات العمل اليوم: ١٢:٠٠ ظهراً – ١١:٠٠ مساءً' : 'Hours: 12:00 PM – 11:00 PM Daily');
+
+  const headlineEn = settings?.heroHeadlineEn || 'ROZANA SALON';
+  const headlineAr = settings?.heroHeadlineAr || 'صالون روزانة';
+  const taglineEn = settings?.heroTaglineEn || t('hero.tagline');
+  const taglineAr = settings?.heroTaglineAr || t('hero.tagline');
 
   return (
     <section className="relative min-h-[92vh] flex items-center justify-center overflow-hidden luxe-obsidian-bg px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
@@ -40,7 +52,7 @@ export const Hero: React.FC<HeroProps> = ({
           </span>
           <span className="text-[#555] hidden sm:inline">•</span>
           <span className="text-xs sm:text-sm font-tajawal text-[#B8AF9F] hidden sm:inline">
-            {language === 'ar' ? 'ساعات العمل اليوم: ١٢:٠٠ ظهراً – ١١:٠٠ مساءً' : 'Hours: 12:00 PM – 11:00 PM Daily'}
+            {operatingHoursText}
           </span>
         </motion.div>
 
@@ -60,14 +72,14 @@ export const Hero: React.FC<HeroProps> = ({
               id="hero-title-en"
               className="font-playfair text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight text-white mb-2"
             >
-              ROZANA SALON
+              {headlineEn}
             </h1>
 
             <h2
               id="hero-title-ar"
               className="font-tajawal text-3xl sm:text-5xl md:text-6xl font-black gold-gradient-text tracking-normal pb-2"
             >
-              صالون روزانة
+              {headlineAr}
             </h2>
           </div>
         </motion.div>
@@ -79,7 +91,7 @@ export const Hero: React.FC<HeroProps> = ({
           transition={{ duration: 0.7, delay: 0.2 }}
           className="font-cormorant text-xl sm:text-2xl md:text-3xl text-[#E8DEC8] font-normal tracking-wide max-w-3xl mb-4 italic"
         >
-          {t('hero.tagline')}
+          {language === 'ar' ? taglineAr : taglineEn}
         </motion.p>
 
         <motion.p

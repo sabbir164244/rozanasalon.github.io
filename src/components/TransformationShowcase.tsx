@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { TRANSFORMATIONS, TransformationItem } from '../data/mockData';
+import { TRANSFORMATIONS } from '../data/mockData';
+import { TransformationItem } from '../types';
 import { Sparkles, ArrowRight, ShieldCheck, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface TransformationShowcaseProps {
+  transformations?: TransformationItem[];
   onSelectServiceToBook: (serviceId: string) => void;
 }
 
 export const TransformationShowcase: React.FC<TransformationShowcaseProps> = ({
+  transformations = TRANSFORMATIONS,
   onSelectServiceToBook,
 }) => {
   const { language, isRTL } = useLanguage();
@@ -16,7 +19,7 @@ export const TransformationShowcase: React.FC<TransformationShowcaseProps> = ({
   const [sliderPosition, setSliderPosition] = useState(50); // percentage 0 to 100
   const [isDragging, setIsDragging] = useState(false);
 
-  const currentItem = TRANSFORMATIONS[activeItemIndex] || TRANSFORMATIONS[0];
+  const currentItem = transformations[activeItemIndex] || transformations[0] || TRANSFORMATIONS[0];
 
   const handleSliderMove = (clientX: number, rect: DOMRect) => {
     let position = ((clientX - rect.left) / rect.width) * 100;
@@ -61,7 +64,7 @@ export const TransformationShowcase: React.FC<TransformationShowcaseProps> = ({
 
           {/* Transformation Switcher Tabs */}
           <div className="flex items-center justify-center gap-3 mt-8">
-            {TRANSFORMATIONS.map((item, idx) => (
+            {transformations.map((item, idx) => (
               <button
                 key={item.id}
                 onClick={() => {

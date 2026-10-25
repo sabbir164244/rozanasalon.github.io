@@ -1,0 +1,74 @@
+{
+  "entities": {
+    "users": {
+      "title": "users",
+      "description": "User profiles for clients and salon staff/admin",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "phone": { "type": "string" },
+        "role": { "type": "string", "enum": ["client", "admin", "staff"] },
+        "loyaltyPoints": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "appointments": {
+      "title": "appointments",
+      "description": "Client salon bookings and service reservations",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "customerEmail": { "type": "string" },
+        "serviceId": { "type": "string" },
+        "staffId": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "status": { "type": "string" },
+        "totalPrice": { "type": "number" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["customerName", "customerPhone", "serviceId", "date", "time", "status"]
+    },
+    "reviews": {
+      "title": "reviews",
+      "description": "Client testimonials and reviews",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "serviceName": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["authorName", "rating", "comment"]
+    },
+    "waitlist": {
+      "title": "waitlist",
+      "description": "Waitlist signups for fully booked dates",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "date": { "type": "string" },
+        "serviceId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "customerEmail": { "type": "string" },
+        "preferredTimeWindow": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["customerName", "customerPhone", "serviceId", "date", "status"]
+    }
+  }
+}

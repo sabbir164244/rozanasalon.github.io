@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { Service, StaffMember, Appointment } from '../types';
+import { useAuth } from '../context/AuthContext';
+import { Service, StaffMember, Appointment, GiftCard, WaitlistEntry } from '../types';
 import { OPERATING_HOURS_SLOTS } from '../data/mockData';
+import { db } from '../lib/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 import { 
   Check, 
   Calendar as CalendarIcon, 
@@ -14,24 +17,38 @@ import {
   CheckCircle2, 
   Share2, 
   AlertCircle,
-  Scissors
+  Scissors,
+  Gift,
+  Tag,
+  Users,
+  Bell,
+  Mail
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface BookingEngineProps {
   services: Service[];
   staff: StaffMember[];
+  appointments?: Appointment[];
   initialSelectedService: Service | null;
+  giftCards?: GiftCard[];
   onBookingComplete: (newAppointment: Appointment) => void;
+  onRedeemGiftCard?: (code: string, amount: number, appointmentRef: string) => void;
+  onJoinWaitlist?: (entry: WaitlistEntry) => void;
 }
 
 export const BookingEngine: React.FC<BookingEngineProps> = ({
   services,
   staff,
+  appointments = [],
   initialSelectedService,
+  giftCards = [],
   onBookingComplete,
+  onRedeemGiftCard,
+  onJoinWaitlist,
 }) => {
   const { language, isRTL, t } = useLanguage();
+  const { currentUser, userProfile } = useAuth();
 
   // Multi-step: 1 -> 2 -> 3 -> 4
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -46,18 +63,64 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
   const [selectedStaffId, setSelectedStaffId] = useState<string>('');
   const [customerName, setCustomerName] = useState<string>('');
   const [customerPhone, setCustomerPhone] = useState<string>('');
+  const [customerEmail, setCustomerEmail] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
+
+  // Waitlist State
+  const [waitlistModalOpen, setWaitlistModalOpen] = useState<boolean>(false);
+  const [waitlistPreferredWindow, setWaitlistPreferredWindow] = useState<string>('any');
+  const [waitlistNotes, setWaitlistNotes] = useState<string>('');
+  const [waitlistSubmitting, setWaitlistSubmitting] = useState<boolean>(false);
+  const [waitlistSubmitted, setWaitlistSubmitted] = useState<WaitlistEntry | null>(null);
+
+  // Auto-fill when client is logged in via Firebase
+  useEffect(() => {
+    if (currentUser && !customerName) {
+      if (userProfile?.displayName) {
+        setCustomerName(userProfile.displayName);
+      } else if (currentUser.displayName) {
+        setCustomerName(currentUser.displayName);
+      }
+    }
+    if (userProfile?.phoneNumber && !customerPhone) {
+      setCustomerPhone(userProfile.phoneNumber);
+    }
+    if (currentUser?.email && !customerEmail) {
+      setCustomerEmail(currentUser.email);
+    }
+  }, [currentUser, userProfile]);
+
+  // Determine booked slots for selectedDate
+  const bookedSlotsForDate = appointments
+    .filter(a => a.date === selectedDate && a.status !== 'cancelled')
+    .map(a => a.time);
+
+  // Check if date is fully booked (e.g. if all operating slots are taken or threshold reached)
+  const isDateFullyBooked = OPERATING_HOURS_SLOTS.length > 0 && 
+    OPERATING_HOURS_SLOTS.every(slot => bookedSlotsForDate.includes(slot));
   
+  // Gift Card Voucher State in Booking
+  const [giftCardCodeInput, setGiftCardCodeInput] = useState<string>('');
+  const [appliedGiftCard, setAppliedGiftCard] = useState<GiftCard | null>(null);
+  const [giftCardError, setGiftCardError] = useState<string>('');
+
   // Validation / feedback
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [confirmedBooking, setConfirmedBooking] = useState<Appointment | null>(null);
 
-  // Sync when initialSelectedService changes from parent
+  // Sync when initialSelectedService or services change from parent/admin edits
   useEffect(() => {
     if (initialSelectedService) {
       setSelectedService(initialSelectedService);
+    } else if (selectedService) {
+      const current = services.find(s => s.id === selectedService.id);
+      if (current) {
+        setSelectedService(current);
+      }
+    } else if (services.length > 0) {
+      setSelectedService(services[0]);
     }
-  }, [initialSelectedService]);
+  }, [initialSelectedService, services]);
 
   // Golden confetti celebration
   const triggerConfetti = () => {
@@ -99,6 +162,46 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
     setCurrentStep(4);
   };
 
+  // Gift Card Application
+  const handleApplyGiftCard = (e: React.FormEvent) => {
+    e.preventDefault();
+    setGiftCardError('');
+    const query = giftCardCodeInput.trim().toUpperCase();
+    if (!query) {
+      setGiftCardError(language === 'ar' ? 'الرجاء كتابة رمز بطاقة الإهداء' : 'Please enter gift card code');
+      return;
+    }
+
+    const matched = giftCards.find(c => c.code.toUpperCase() === query);
+    if (!matched) {
+      setGiftCardError(language === 'ar' ? 'عذراً، رمز البطاقة غير موجود أو غير صحيح' : 'Invalid gift card code');
+      return;
+    }
+
+    if (matched.status === 'cancelled' || matched.status === 'expired') {
+      setGiftCardError(language === 'ar' ? 'هذه البطاقة ملغية أو منتهية الصلاحية' : 'This gift card is expired or inactive');
+      return;
+    }
+
+    if (matched.remainingBalanceSAR <= 0) {
+      setGiftCardError(language === 'ar' ? 'رصيد هذه البطاقة مستنفد كلياً (0 ر.س)' : 'This card has zero balance');
+      return;
+    }
+
+    setAppliedGiftCard(matched);
+    setGiftCardCodeInput('');
+  };
+
+  const handleRemoveGiftCard = () => {
+    setAppliedGiftCard(null);
+    setGiftCardError('');
+  };
+
+  // Step 4 Calculations
+  const originalPrice = selectedService ? selectedService.priceSAR : 0;
+  const giftCardDeduction = appliedGiftCard ? Math.min(appliedGiftCard.remainingBalanceSAR, originalPrice) : 0;
+  const finalPayableSAR = Math.max(0, originalPrice - giftCardDeduction);
+
   // Step 4 Final Confirmation Action
   const handleConfirmBooking = () => {
     if (!selectedService) return;
@@ -106,6 +209,14 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
     const assignedStaff = staff.find(s => s.id === selectedStaffId);
     const randomRefNum = Math.floor(1000 + Math.random() * 9000);
     const refCode = `ROZ-${randomRefNum}`;
+
+    const noteSegments = [notes.trim()];
+    if (appliedGiftCard && giftCardDeduction > 0) {
+      noteSegments.push(`Paid with Gift Card ${appliedGiftCard.code} (-${giftCardDeduction} SAR)`);
+      if (onRedeemGiftCard) {
+        onRedeemGiftCard(appliedGiftCard.code, giftCardDeduction, refCode);
+      }
+    }
 
     const newAppointment: Appointment = {
       id: `apt-${Date.now()}`,
@@ -125,13 +236,62 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
       date: selectedDate,
       time: selectedTime,
       status: 'new',
-      notes: notes.trim() || undefined,
-      totalSAR: selectedService.priceSAR,
+      notes: noteSegments.filter(Boolean).join(' | ') || undefined,
+      totalSAR: finalPayableSAR,
       createdAt: new Date().toLocaleString()
     };
 
     onBookingComplete(newAppointment);
     setConfirmedBooking(newAppointment);
+    triggerConfetti();
+  };
+
+  // Waitlist Submission
+  const handleJoinWaitlistSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customerName.trim() || customerPhone.trim().length < 9) {
+      setErrorMessage(t('booking.errorDetails'));
+      return;
+    }
+
+    setWaitlistSubmitting(true);
+    setErrorMessage('');
+
+    const randomRefNum = Math.floor(1000 + Math.random() * 9000);
+    const refCode = `WAIT-${randomRefNum}`;
+
+    const newWaitlistEntry: WaitlistEntry = {
+      id: `wait-${Date.now()}`,
+      referenceCode: refCode,
+      date: selectedDate,
+      preferredTimeWindow: waitlistPreferredWindow,
+      serviceId: selectedService?.id || 'general',
+      serviceNameEn: selectedService?.nameEn || 'General Treatment',
+      serviceNameAr: selectedService?.nameAr || 'جلسة صالون عامة',
+      customerName: customerName.trim(),
+      customerPhone: customerPhone.startsWith('+966') ? customerPhone.trim() : `+966 ${customerPhone.trim()}`,
+      customerEmail: customerEmail.trim() || undefined,
+      notes: waitlistNotes.trim() || undefined,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      userId: currentUser?.uid || null,
+    };
+
+    try {
+      await addDoc(collection(db, 'waitlist'), {
+        ...newWaitlistEntry,
+        createdTimestamp: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.warn('Firestore waitlist save notice:', err);
+    }
+
+    if (onJoinWaitlist) {
+      onJoinWaitlist(newWaitlistEntry);
+    }
+
+    setWaitlistSubmitted(newWaitlistEntry);
+    setWaitlistSubmitting(false);
     triggerConfetti();
   };
 
@@ -330,6 +490,34 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                 </span>
               </div>
 
+              {/* Fully booked banner or slot selection */}
+              {isDateFullyBooked ? (
+                <div className="mb-8 rounded-2xl bg-[#1A140A] border border-[#D4AF37]/40 p-6 text-center space-y-4">
+                  <div className="w-12 h-12 rounded-full bg-[#2A200F] border border-[#D4AF37]/50 flex items-center justify-center text-[#E5C378] mx-auto">
+                    <Bell className="w-6 h-6 animate-bounce" />
+                  </div>
+                  <div>
+                    <span className="inline-block px-3 py-1 rounded-full bg-amber-950/80 border border-amber-500/40 text-[#E5C378] text-xs font-tajawal font-bold mb-2">
+                      {t('booking.waitlistBadge')}
+                    </span>
+                    <h4 className="font-playfair text-xl font-bold text-[#F8F5EE] mb-1">
+                      {t('booking.waitlistTitle')}
+                    </h4>
+                    <p className="font-tajawal text-xs sm:text-sm text-[#D2C8BA] max-w-lg mx-auto">
+                      {t('booking.waitlistDesc')}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setWaitlistModalOpen(true)}
+                    className="luxe-gold-btn px-8 py-3 rounded-full text-xs sm:text-sm font-tajawal font-bold inline-flex items-center gap-2 cursor-pointer shadow-xl"
+                  >
+                    <Users className="w-4 h-4" />
+                    <span>{t('booking.joinWaitlistBtn')}</span>
+                  </button>
+                </div>
+              ) : null}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                 {/* Date Selection */}
                 <div>
@@ -373,6 +561,18 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                       );
                     })}
                   </div>
+
+                  {/* Optional Waitlist entry button even if day has some slots, in case client wants another slot */}
+                  <div className="mt-4 pt-3 border-t border-white/5">
+                    <button
+                      type="button"
+                      onClick={() => setWaitlistModalOpen(true)}
+                      className="text-xs text-[#E5C378] hover:text-[#F8F5EE] font-tajawal flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Bell className="w-3.5 h-3.5 text-[#E5C378]" />
+                      <span>{language === 'ar' ? 'الوقت المرغوب غير متاح؟ انضمي لقائمة الانتظار' : 'Specific time unavailable? Join Date Waitlist'}</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Operating Time Slots (12 PM - 11 PM) */}
@@ -385,16 +585,23 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                   <div className="grid grid-cols-3 gap-2 max-h-[220px] overflow-y-auto pr-1">
                     {OPERATING_HOURS_SLOTS.map((slot) => {
                       const isSelected = selectedTime === slot;
+                      const isBooked = bookedSlotsForDate.includes(slot);
                       return (
                         <button
                           key={slot}
                           type="button"
-                          onClick={() => setSelectedTime(slot)}
-                          className={`py-2 px-1 text-center rounded-xl text-xs font-mono font-medium transition-all cursor-pointer ${
-                            isSelected
-                              ? 'bg-[#E5C378] text-[#0E0C09] font-bold shadow-[0_0_12px_rgba(229,195,120,0.4)]'
-                              : 'bg-[#14120D] text-[#A89F91] border border-white/5 hover:border-[#D4AF37]/30'
+                          disabled={isBooked}
+                          onClick={() => {
+                            if (!isBooked) setSelectedTime(slot);
+                          }}
+                          className={`py-2 px-1 text-center rounded-xl text-xs font-mono font-medium transition-all ${
+                            isBooked
+                              ? 'bg-[#12100C]/50 text-[#5A5348] border border-white/5 cursor-not-allowed line-through'
+                              : isSelected
+                              ? 'bg-[#E5C378] text-[#0E0C09] font-bold shadow-[0_0_12px_rgba(229,195,120,0.4)] cursor-pointer'
+                              : 'bg-[#14120D] text-[#A89F91] border border-white/5 hover:border-[#D4AF37]/30 cursor-pointer'
                           }`}
+                          title={isBooked ? (language === 'ar' ? 'هذا الوقت محجوز مسبقاً' : 'Slot already booked') : undefined}
                         >
                           {slot}
                         </button>
@@ -580,15 +787,75 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
 
                   <div className="text-end">
                     <span className="text-xs font-tajawal text-[#8C8477] block">
-                      {language === 'ar' ? 'السعر الإجمالي' : 'Total Due'}
+                      {language === 'ar' ? 'المبلغ المطلوب دفعه' : 'Total Due'}
                     </span>
-                    <span className="font-playfair text-3xl font-extrabold text-[#E5C378]">
-                      {selectedService.priceSAR}
-                    </span>
-                    <span className="text-xs font-tajawal text-[#D2C8BA] ms-1">
-                      {t('services.sar')}
+                    <div className="flex items-baseline justify-end gap-1.5">
+                      {appliedGiftCard && giftCardDeduction > 0 && (
+                        <span className="text-xs line-through text-[#8C8477] font-playfair">
+                          {originalPrice} ر.س
+                        </span>
+                      )}
+                      <span className="font-playfair text-3xl font-extrabold text-[#E5C378]">
+                        {finalPayableSAR}
+                      </span>
+                      <span className="text-xs font-tajawal text-[#D2C8BA]">
+                        {t('services.sar')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Gift Card Voucher Code Input Section */}
+                <div className="my-4 p-4 rounded-xl bg-[#0E0C09] border border-[#D4AF37]/25">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Gift className="w-4 h-4 text-[#E5C378]" />
+                    <span className="text-xs font-tajawal font-bold text-[#F8F5EE]">
+                      {language === 'ar' ? 'هل لديكِ بطاقة إهداء رقمية من روزانة؟' : 'Have a Rozana Gift Card Voucher?'}
                     </span>
                   </div>
+
+                  {!appliedGiftCard ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={giftCardCodeInput}
+                        onChange={(e) => setGiftCardCodeInput(e.target.value)}
+                        placeholder={language === 'ar' ? 'أدخلي كود البطاقة (مثال: ROZ-GOLD-500)' : 'Enter voucher code (e.g. ROZ-GOLD-500)'}
+                        className="flex-1 bg-[#14120D] border border-white/10 focus:border-[#E5C378] rounded-xl px-3.5 py-2 text-xs font-mono uppercase text-[#F8F5EE] focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleApplyGiftCard}
+                        className="px-4 py-2 rounded-xl bg-[#211B11] border border-[#D4AF37]/40 hover:border-[#E5C378] text-[#E5C378] text-xs font-tajawal font-bold transition-all cursor-pointer shrink-0"
+                      >
+                        {language === 'ar' ? 'تطبيق الخصم' : 'Apply'}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#1B271E] border border-emerald-500/40 text-xs font-tajawal">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        <div>
+                          <span className="font-mono font-bold text-emerald-300">{appliedGiftCard.code}</span>
+                          <span className="text-[#A89F91] mx-1">•</span>
+                          <span className="text-emerald-400 font-bold">-{giftCardDeduction} SAR {language === 'ar' ? 'خصم فوري' : 'deducted'}</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveGiftCard}
+                        className="text-xs text-red-400 hover:text-red-300 cursor-pointer font-medium"
+                      >
+                        {language === 'ar' ? 'إلغاء' : 'Remove'}
+                      </button>
+                    </div>
+                  )}
+
+                  {giftCardError && (
+                    <p className="text-[11px] text-red-400 font-tajawal mt-2">
+                      {giftCardError}
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm font-tajawal">
@@ -719,6 +986,162 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
           )}
         </div>
       </div>
+
+      {/* ========================================================= */}
+      {/* WAITLIST SIGNUP MODAL */}
+      {/* ========================================================= */}
+      {waitlistModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg rounded-3xl bg-[#12100C] border border-[#D4AF37]/40 p-6 sm:p-8 shadow-2xl relative text-start">
+            <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-6">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-[#2A200F] border border-[#D4AF37]/40 flex items-center justify-center text-[#E5C378]">
+                  <Bell className="w-5 h-5 text-[#E5C378]" />
+                </div>
+                <div>
+                  <h3 className="font-playfair text-lg sm:text-xl font-bold text-[#F8F5EE]">
+                    {t('booking.waitlistTitle')}
+                  </h3>
+                  <span className="text-xs text-[#E5C378] font-mono">
+                    {selectedDate} • {language === 'ar' ? selectedService?.nameAr : selectedService?.nameEn}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setWaitlistModalOpen(false);
+                  setWaitlistSubmitted(null);
+                }}
+                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-[#8C8477] hover:text-white flex items-center justify-center text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {waitlistSubmitted ? (
+              <div className="text-center py-6 space-y-4 animate-in fade-in duration-300">
+                <div className="w-14 h-14 rounded-full bg-emerald-950/70 border border-emerald-500/50 flex items-center justify-center text-emerald-400 mx-auto">
+                  <CheckCircle2 className="w-7 h-7" />
+                </div>
+                <h4 className="font-playfair text-xl font-bold text-[#F8F5EE]">
+                  {t('booking.waitlistSuccessTitle')}
+                </h4>
+                <p className="font-tajawal text-xs sm:text-sm text-[#D2C8BA] leading-relaxed">
+                  {t('booking.waitlistSuccessDesc')}
+                </p>
+                <div className="p-3.5 rounded-2xl bg-[#1A1711] border border-white/10 text-xs font-mono text-[#E5C378]">
+                  Reference Code: <span className="font-bold text-white">{waitlistSubmitted.referenceCode}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWaitlistModalOpen(false);
+                    setWaitlistSubmitted(null);
+                  }}
+                  className="luxe-gold-btn px-6 py-2.5 rounded-full text-xs font-tajawal font-bold mt-2 cursor-pointer"
+                >
+                  {language === 'ar' ? 'إغلاق' : 'Close'}
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleJoinWaitlistSubmit} className="space-y-4">
+                <p className="font-tajawal text-xs text-[#A89F91] leading-relaxed">
+                  {t('booking.waitlistDesc')}
+                </p>
+
+                {/* Name */}
+                <div>
+                  <label className="block text-xs font-tajawal font-bold text-[#D2C8BA] mb-1.5 flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-[#E5C378]" />
+                    <span>{t('booking.customerName')} *</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder={t('booking.namePlaceholder')}
+                    className="w-full px-4 py-3 rounded-xl bg-[#181510] border border-white/15 text-[#F8F5EE] placeholder-[#665F55] focus:border-[#E5C378] text-xs sm:text-sm outline-none font-tajawal"
+                  />
+                </div>
+
+                {/* Phone */}
+                <div>
+                  <label className="block text-xs font-tajawal font-bold text-[#D2C8BA] mb-1.5 flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5 text-[#E5C378]" />
+                    <span>{t('booking.phone')} *</span>
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder={t('booking.phonePlaceholder')}
+                    className="w-full px-4 py-3 rounded-xl bg-[#181510] border border-white/15 text-[#F8F5EE] placeholder-[#665F55] focus:border-[#E5C378] text-xs sm:text-sm outline-none font-mono"
+                  />
+                </div>
+
+                {/* Preferred Window */}
+                <div>
+                  <label className="block text-xs font-tajawal font-bold text-[#D2C8BA] mb-1.5 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-[#E5C378]" />
+                    <span>{t('booking.preferredWindow')}</span>
+                  </label>
+                  <select
+                    value={waitlistPreferredWindow}
+                    onChange={(e) => setWaitlistPreferredWindow(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-[#181510] border border-white/15 text-[#F8F5EE] focus:border-[#E5C378] text-xs sm:text-sm outline-none font-tajawal"
+                  >
+                    <option value="any">{t('booking.windowAny')}</option>
+                    <option value="afternoon">{t('booking.windowAfternoon')}</option>
+                    <option value="evening">{t('booking.windowEvening')}</option>
+                  </select>
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="block text-xs font-tajawal font-bold text-[#D2C8BA] mb-1.5">
+                    {t('booking.notes')}
+                  </label>
+                  <input
+                    type="text"
+                    value={waitlistNotes}
+                    onChange={(e) => setWaitlistNotes(e.target.value)}
+                    placeholder={language === 'ar' ? 'أي تفضيل إضافي أو وقت محدد...' : 'Specific preferred time or requirement...'}
+                    className="w-full px-4 py-3 rounded-xl bg-[#181510] border border-white/15 text-[#F8F5EE] placeholder-[#665F55] focus:border-[#E5C378] text-xs sm:text-sm outline-none font-tajawal"
+                  />
+                </div>
+
+                {errorMessage && (
+                  <p className="text-xs text-rose-400 font-tajawal flex items-center gap-1.5">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>{errorMessage}</span>
+                  </p>
+                )}
+
+                <div className="pt-3 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setWaitlistModalOpen(false)}
+                    className="px-5 py-2.5 rounded-full text-xs font-tajawal text-[#8C8477] hover:text-white cursor-pointer"
+                  >
+                    {t('booking.back')}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={waitlistSubmitting}
+                    className="luxe-gold-btn px-6 py-2.5 rounded-full text-xs font-tajawal font-bold flex items-center gap-2 cursor-pointer shadow-lg disabled:opacity-50"
+                  >
+                    <Bell className="w-3.5 h-3.5" />
+                    <span>{waitlistSubmitting ? (language === 'ar' ? 'جارٍ التسجيل...' : 'Submitting...') : t('booking.joinWaitlistBtn')}</span>
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </section>
   );
 };

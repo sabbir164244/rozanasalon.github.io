@@ -1,16 +1,22 @@
 import React from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { VIP_PACKAGES, VipPackage } from '../data/mockData';
+import { VIP_PACKAGES } from '../data/mockData';
+import { VipPackage } from '../types';
 import { Sparkles, Check, Clock, ArrowRight, Heart } from 'lucide-react';
 
 interface BridalPackagesProps {
-  onSelectPackageToBook: (pkg: VipPackage) => void;
+  packages?: VipPackage[];
+  onSelectPackageToBook?: (pkg: VipPackage) => void;
+  onSelectPackage?: (pkg: VipPackage) => void;
 }
 
 export const BridalPackages: React.FC<BridalPackagesProps> = ({
+  packages = VIP_PACKAGES,
   onSelectPackageToBook,
+  onSelectPackage,
 }) => {
   const { language, isRTL } = useLanguage();
+  const handleSelect = onSelectPackageToBook || onSelectPackage || (() => {});
 
   return (
     <section id="packages" className="relative py-24 px-4 sm:px-6 lg:px-8 bg-[#0E0C09] overflow-hidden border-t border-[#D4AF37]/15">
@@ -36,7 +42,7 @@ export const BridalPackages: React.FC<BridalPackagesProps> = ({
 
         {/* 3-Column Luxury Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {VIP_PACKAGES.map((pkg) => {
+          {packages.map((pkg) => {
             const savingsSAR = pkg.originalPriceSAR - pkg.priceSAR;
             return (
               <div
@@ -122,7 +128,7 @@ export const BridalPackages: React.FC<BridalPackagesProps> = ({
                 {/* Booking Trigger */}
                 <button
                   id={`book-vip-pkg-${pkg.id}`}
-                  onClick={() => onSelectPackageToBook(pkg)}
+                  onClick={() => handleSelect(pkg)}
                   className={`w-full py-3.5 rounded-full text-xs sm:text-sm font-tajawal font-bold flex items-center justify-center gap-2 cursor-pointer transition-all ${
                     pkg.popular
                       ? 'luxe-gold-btn shadow-lg'

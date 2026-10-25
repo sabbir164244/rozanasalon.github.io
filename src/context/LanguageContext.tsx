@@ -4,8 +4,10 @@ import { Language } from '../types';
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
+  toggleLanguage: () => void;
   isRTL: boolean;
   t: (key: string) => string;
+  isTransitioning: boolean;
 }
 
 const translations: Record<Language, Record<string, string>> = {
@@ -19,6 +21,8 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.admin': 'Admin Dashboard',
     'nav.quickBook': 'Book Now',
     'nav.branch': 'Al Shumaisi Branch',
+    'nav.signIn': 'Sign In / Login',
+    'nav.login': 'Login',
 
     // Hero
     'hero.brandEn': 'Rozana Salon',
@@ -79,6 +83,17 @@ const translations: Record<Language, Record<string, string>> = {
     'booking.errorSelectService': 'Please select a service to proceed.',
     'booking.errorSelectTime': 'Please choose an available appointment date and time slot.',
     'booking.errorDetails': 'Please provide your full name and valid Saudi phone number.',
+    'booking.waitlistBadge': 'Fully Booked Day - Join VIP Waitlist',
+    'booking.waitlistTitle': 'Join Priority Waitlist',
+    'booking.waitlistDesc': 'All regular appointment slots for this date are fully reserved. Enter your details to be instantly notified via SMS / WhatsApp if a slot opens up.',
+    'booking.joinWaitlistBtn': 'Join Priority Waitlist',
+    'booking.waitlistSuccessTitle': 'Added to VIP Waitlist!',
+    'booking.waitlistSuccessDesc': 'We have registered your request. If any client reschedules or cancels, our concierge team will immediately notify you.',
+    'booking.preferredWindow': 'Preferred Time Window',
+    'booking.windowAny': 'Any Time (12 PM - 11 PM)',
+    'booking.windowAfternoon': 'Afternoon (12 PM - 5 PM)',
+    'booking.windowEvening': 'Evening (5 PM - 11 PM)',
+    'booking.dayFullyBookedNotice': 'This day is at maximum capacity. You can join the VIP waitlist below or pick another date.',
 
     // Social Proof
     'social.badge': 'Google Verified Proof',
@@ -148,6 +163,8 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.admin': 'لوحة الإدارة',
     'nav.quickBook': 'احجزي الآن',
     'nav.branch': 'فرع الشميسي',
+    'nav.signIn': 'تسجيل الدخول / Sign In',
+    'nav.login': 'تسجيل الدخول',
 
     // Hero
     'hero.brandEn': 'Rozana Salon',
@@ -208,6 +225,17 @@ const translations: Record<Language, Record<string, string>> = {
     'booking.errorSelectService': 'الرجاء اختيار الخدمة أولاً للمتابعة.',
     'booking.errorSelectTime': 'الرجاء تحديد تاريخ ووقت الموعد.',
     'booking.errorDetails': 'الرجاء إدخال الاسم ورقم الجوال السعودي بشكل صحيح.',
+    'booking.waitlistBadge': 'اليوم مكتمل بالكامل - الانضمام لقائمة الانتظار VIP',
+    'booking.waitlistTitle': 'الانضمام لقائمة الانتظار ذات الأولوية',
+    'booking.waitlistDesc': 'جميع المواعيد في هذا اليوم محجوزة بالكامل. أدخلي بياناتكِ لنقوم بإشعاركِ فوراً عبر الرسائل أو الواتساب عند توفر أو إلغاء أي مقعد.',
+    'booking.joinWaitlistBtn': 'تسجيل في قائمة الانتظار',
+    'booking.waitlistSuccessTitle': 'تم تسجيلكِ بنجاح في قائمة الانتظار!',
+    'booking.waitlistSuccessDesc': 'تم حفظ طلبكِ بأعلى أولوية. في حال حدوث أي إلغاء أو توفر مقعد، ستصلكِ رسالة تنبيه فورية لحجز موعدكِ.',
+    'booking.preferredWindow': 'الوقت المفضل للزيارة',
+    'booking.windowAny': 'أي وقت متاح (12 ظهراً - 11 مساءً)',
+    'booking.windowAfternoon': 'فترة الظهيرة (12 ظهراً - 5 عصراً)',
+    'booking.windowEvening': 'الفترة المسائية (5 عصراً - 11 مساءً)',
+    'booking.dayFullyBookedNotice': 'هذا اليوم محجوز بالكامل بأقصى طاقة استيعابية. يمكنكِ الانضمام لقائمة الانتظار أدناه أو اختيار يوم آخر.',
 
     // Social Proof
     'social.badge': 'تقييمات عميلاتنا الحقيقية',
@@ -273,21 +301,45 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguageState] = useState<Language>('ar'); // Default to Arabic as requested for authentic Saudi salon experience
+  const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
+  const transitionTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const setLanguage = (lang: Language) => {
+    if (lang === language) return;
+
+    if (transitionTimeoutRef.current) {
+      clearTimeout(transitionTimeoutRef.current);
+    }
+
+    setIsTransitioning(true);
     setLanguageState(lang);
     localStorage.setItem('rozana_lang', lang);
     document.documentElement.setAttribute('lang', lang);
     document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+
+    // Subtle fade-in transition duration
+    transitionTimeoutRef.current = setTimeout(() => {
+      setIsTransitioning(false);
+      transitionTimeoutRef.current = null;
+    }, 60);
+  };
+
+  const toggleLanguage = () => {
+    setLanguage(language === 'en' ? 'ar' : 'en');
   };
 
   useEffect(() => {
     const saved = localStorage.getItem('rozana_lang') as Language | null;
-    if (saved === 'en' || saved === 'ar') {
-      setLanguage(saved);
-    } else {
-      setLanguage('ar');
-    }
+    const initialLang: Language = (saved === 'en' || saved === 'ar') ? saved : 'ar';
+    setLanguageState(initialLang);
+    document.documentElement.setAttribute('lang', initialLang);
+    document.documentElement.setAttribute('dir', initialLang === 'ar' ? 'rtl' : 'ltr');
+
+    return () => {
+      if (transitionTimeoutRef.current) {
+        clearTimeout(transitionTimeoutRef.current);
+      }
+    };
   }, []);
 
   const isRTL = language === 'ar';
@@ -297,7 +349,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, isRTL, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, toggleLanguage, isRTL, t, isTransitioning }}>
       {children}
     </LanguageContext.Provider>
   );

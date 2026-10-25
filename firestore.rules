@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if user is accessing their own doc
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    // Appointments Collection
+    match /appointments/{appointmentId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || resource.data.userId == null);
+      allow create: if true; // Allows guests or logged in users to book
+      allow update: if isAuthenticated() && (resource.data.userId == request.auth.uid || request.auth.token.role == 'admin');
+      allow delete: if isAuthenticated() && request.auth.token.role == 'admin';
+    }
+
+    // Reviews Collection
+    match /reviews/{reviewId} {
+      allow read: if true; // Publicly viewable
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || request.auth.token.role == 'admin');
+    }
+
+    // Waitlist Collection
+    match /waitlist/{waitlistId} {
+      allow read: if isAuthenticated();
+      allow create: if true; // Guests or registered clients can join waitlist
+      allow update: if isAuthenticated() && (resource.data.userId == request.auth.uid || request.auth.token.role == 'admin');
+      allow delete: if isAuthenticated() && request.auth.token.role == 'admin';
+    }
+  }
+}
