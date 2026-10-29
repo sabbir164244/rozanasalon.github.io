@@ -79,7 +79,18 @@ function MainSalonApp() {
 
   const [securityConfig, setSecurityConfig] = useState<AdminSecurityConfig>(() => {
     const saved = localStorage.getItem('rozana_admin_security');
-    return saved ? JSON.parse(saved) : INITIAL_ADMIN_SECURITY;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.password === 'rozana2026') {
+          parsed.password = 'rozana6251';
+        }
+        return parsed;
+      } catch {
+        return INITIAL_ADMIN_SECURITY;
+      }
+    }
+    return INITIAL_ADMIN_SECURITY;
   });
 
   const [packages, setPackages] = useState<VipPackage[]>(() => {

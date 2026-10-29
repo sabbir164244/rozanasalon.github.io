@@ -457,7 +457,7 @@ export const SALON_SETTINGS: SalonSettings = {
 
 export const INITIAL_ADMIN_SECURITY: AdminSecurityConfig = {
   email: 'admin@rozanasalon.sa',
-  password: 'rozana2026',
+  password: 'rozana6251',
   recoveryQuestion: 'What is the founding branch location of Rozana Salon?',
   recoveryAnswer: 'Al Shumaisi',
   lastUpdated: '2026-09-09'

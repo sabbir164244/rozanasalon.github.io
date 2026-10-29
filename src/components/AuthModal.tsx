@@ -134,12 +134,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         handleClose();
       }, 1200);
     } catch (err: any) {
-      if (err?.code === 'auth/popup-closed-by-user' || err?.message?.includes('popup-closed-by-user')) {
-        // User closed the popup window voluntarily, not an application error
+      if (err?.code === 'auth/popup-closed-by-user' || err?.message?.includes('popup-closed-by-user') || err?.code === 'auth/cancelled-popup-request') {
+        // User closed the popup window voluntarily, not an error
         return;
       }
       console.warn('Google Sign In error:', err);
-      setError(language === 'ar' ? 'تعذر تسجيل الدخول بواسطة جوجل، يرجى المحاولة لاحقاً.' : 'Google sign-in could not be completed.');
+      
+      const errorCode = err?.code || '';
+      if (errorCode === 'auth/unauthorized-domain') {
+        const currentHost = window.location.hostname || 'your domain';
+        setError(
+          language === 'ar'
+            ? `النطاق (${currentHost}) غير مضاف في قائمة النطاقات المصرح بها (Authorized Domains) في Firebase Console. يمكنكِ التسجيل بالبريد وكلمة المرور أدناه فوراً دون أي قيود!`
+            : `Domain "${currentHost}" is not authorized in Firebase Console > Authentication > Settings > Authorized Domains. You can sign in or sign up with Email & Password below instantly!`
+        );
+      } else if (errorCode === 'auth/popup-blocked') {
+        setError(
+          language === 'ar'
+            ? 'تم حظر نافذة جوجل المنبثقة من قبل حماية المتصفح (Brave Shields أو مانع النوافذ). يرجى السماح بالنوافذ أو تسجيل الدخول بالبريد أدناه.'
+            : 'Google popup was blocked by browser shields (e.g. Brave Shields). Please allow popups or use Email login below.'
+        );
+      } else {
+        setError(
+          language === 'ar'
+            ? `تعذر إتمام الدخول بواسطة جوجل (${errorCode || 'خطأ في المصادقة'}). يرجى استخدام البريد وكلمة المرور أدناه.`
+            : `Google sign-in could not be completed (${errorCode || 'Auth error'}). Please use Email sign-in or sign-up below.`
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -434,6 +455,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </svg>
               <span>{language === 'ar' ? 'الدخول بحساب Google بنقرة واحدة' : 'Continue with Google'}</span>
             </button>
+
+            <p className="mt-3 text-center text-[10px] text-[#8C8477] font-tajawal">
+              {language === 'ar'
+                ? '💡 يمكنكِ أيضاً إنشاء حساب بالبريد وكلمة المرور فوراً من تبويب (حساب جديد) أعلاه مع 150 نقطة ترحيبية.'
+                : '💡 Tip: You can also create an account with any email & password via the "Sign Up (150 Pts)" tab above.'}
+            </p>
           </div>
         )}
       </motion.div>
