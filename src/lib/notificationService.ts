@@ -1,4 +1,5 @@
 import { Appointment, ServiceNotificationRecord } from '../types';
+import { compileBookingEmail } from './emailTemplateService';
 
 const STORAGE_KEY = 'rozana_service_notifications';
 
@@ -96,44 +97,20 @@ export async function triggerBookingConfirmationNotifications(
     };
   }
 
-  // 2. Generate Automated Email Notification
+  // 2. Generate Automated Email Notification using Dynamic Email Template Utility
   if (channels.includes('email')) {
-    const emailSubject = `✦ Reservation Confirmed: ${appointment.serviceNameEn} (#${ref}) - Rozana Luxury Salon`;
+    // Compile using dynamic booking confirmation template with variables (customer_name, service, appointment_time)
+    const compiledEn = compileBookingEmail('booking_confirmation', appointment, 'en', {
+      customerEmail: email,
+      fallbackBranchNameEn: branchNameEn,
+      fallbackBranchNameAr: branchNameAr
+    });
 
-    const emailContentAr = 
-      `أهلاً بكِ ${appointment.customerName} في واحة الجمال الملكي.\n\n` +
-      `يسرنا تأكيد حجز موعدكِ الفاخر في صالون روزانة:\n\n` +
-      `تفاصيل الحجز:\n` +
-      `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `رمز الحجز المرجعي: ${ref}\n` +
-      `الخدمة المختارة: ${appointment.serviceNameAr}\n` +
-      `التاريخ والوقت: ${appointment.date} الساعة ${appointment.time}\n` +
-      `الأخصائية المسؤولة: ${appointment.staffName || 'خبيرة التجميل المعتمدة'}\n` +
-      `المبلغ المطلوب: ${appointment.totalSAR} ر.س\n` +
-      `الفرع: ${branchNameAr}\n` +
-      `━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-      `معلومات هامة لراحتكِ:\n` +
-      `• تتوفر خدمة صف السيارات المجانية (Valet Parking) أمام المدخل الرئيسي.\n` +
-      `• يرجى التفضل بالحضور قبل الموعد بـ 10 دقائق للاستمتاع بضيافة القهوة السعودية وبدء جلسة الاسترخاء.\n\n` +
-      `مع خالص الود والتقدير،\nفريق إدارة صالون روزانة • الرياض`;
-
-    const emailContentEn = 
-      `Dear ${appointment.customerName},\n\n` +
-      `We are delighted to confirm your bespoke luxury appointment at Rozana Salon.\n\n` +
-      `RESERVATION SUMMARY:\n` +
-      `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `Booking Reference: ${ref}\n` +
-      `Service: ${appointment.serviceNameEn}\n` +
-      `Date & Time: ${appointment.date} at ${appointment.time}\n` +
-      `Specialist: ${appointment.staffName || 'Senior Specialist'}\n` +
-      `Total Payable: ${appointment.totalSAR} SAR\n` +
-      `Sanctuary: ${branchNameEn}\n` +
-      `━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-      `EXCLUSIVE SALON AMENITIES:\n` +
-      `• Complimentary Valet Parking available at our private entrance.\n` +
-      `• Enjoy our artisanal Saudi Cardamom Coffee & dates lounge upon arrival.\n` +
-      `• Please arrive 10 minutes prior to your treatment for a tailored consultation.\n\n` +
-      `Warmest regards,\nRozana Luxury Salon Concierge • Riyadh`;
+    const compiledAr = compileBookingEmail('booking_confirmation', appointment, 'ar', {
+      customerEmail: email,
+      fallbackBranchNameEn: branchNameEn,
+      fallbackBranchNameAr: branchNameAr
+    });
 
     emailRecord = {
       id: `email-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -144,9 +121,12 @@ export async function triggerBookingConfirmationNotifications(
       customerEmail: email,
       channel: 'email',
       senderId: 'concierge@rozanasalon.sa',
-      subject: emailSubject,
-      contentEn: emailContentEn,
-      contentAr: emailContentAr,
+      subject: compiledAr.subject,
+      contentEn: compiledEn.textBody,
+      contentAr: compiledAr.textBody,
+      htmlBodyEn: compiledEn.htmlBody,
+      htmlBodyAr: compiledAr.htmlBody,
+      templateId: 'booking_confirmation',
       status: 'delivered',
       sentAt: nowISO,
       gatewayRef: emailGatewayRef,

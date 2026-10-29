@@ -28,6 +28,7 @@ export const ServiceNotificationCard: React.FC<ServiceNotificationCardProps> = (
 }) => {
   const { language } = useLanguage();
   const [activeTab, setActiveTab] = useState<'sms' | 'email'>('sms');
+  const [emailFormat, setEmailFormat] = useState<'text' | 'html'>('text');
   const [copied, setCopied] = useState<boolean>(false);
   const [isResending, setIsResending] = useState<boolean>(false);
 
@@ -137,15 +138,50 @@ export const ServiceNotificationCard: React.FC<ServiceNotificationCardProps> = (
           ) : (
             /* Email Card Preview */
             <div className="p-4 rounded-2xl bg-[#1A1812] border border-[#D4AF37]/20 shadow-inner space-y-2.5">
-              <div className="pb-2 border-b border-white/5">
-                <span className="text-[10px] text-[#8C8477] block">Subject:</span>
-                <span className="text-xs font-playfair font-bold text-[#E5C378] block">
-                  {activeRecord.subject}
-                </span>
+              <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                <div>
+                  <span className="text-[10px] text-[#8C8477] block">Subject:</span>
+                  <span className="text-xs font-playfair font-bold text-[#E5C378] block">
+                    {activeRecord.subject}
+                  </span>
+                </div>
+                {(activeRecord.htmlBodyAr || activeRecord.htmlBodyEn) && (
+                  <div className="flex p-0.5 rounded-lg bg-[#0E0C09] border border-white/10 text-[10px]">
+                    <button
+                      type="button"
+                      onClick={() => setEmailFormat('text')}
+                      className={`px-2 py-0.5 rounded font-mono transition-all cursor-pointer ${
+                        emailFormat === 'text' ? 'bg-[#E5C378] text-[#0E0C09] font-bold' : 'text-[#8C8477]'
+                      }`}
+                    >
+                      Text
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEmailFormat('html')}
+                      className={`px-2 py-0.5 rounded font-mono transition-all cursor-pointer ${
+                        emailFormat === 'html' ? 'bg-[#E5C378] text-[#0E0C09] font-bold' : 'text-[#8C8477]'
+                      }`}
+                    >
+                      HTML
+                    </button>
+                  </div>
+                )}
               </div>
-              <p className="text-xs font-tajawal text-[#DDD] whitespace-pre-line leading-relaxed max-h-48 overflow-y-auto pr-1">
-                {language === 'ar' ? activeRecord.contentAr : activeRecord.contentEn}
-              </p>
+
+              {emailFormat === 'html' && (activeRecord.htmlBodyAr || activeRecord.htmlBodyEn) ? (
+                <div className="rounded-xl overflow-hidden border border-white/10 bg-[#0A0907]">
+                  <iframe
+                    title="Rendered Email HTML"
+                    srcDoc={language === 'ar' ? (activeRecord.htmlBodyAr || activeRecord.htmlBodyEn) : (activeRecord.htmlBodyEn || activeRecord.htmlBodyAr)}
+                    className="w-full h-56 border-0 bg-transparent"
+                  />
+                </div>
+              ) : (
+                <p className="text-xs font-tajawal text-[#DDD] whitespace-pre-line leading-relaxed max-h-48 overflow-y-auto pr-1">
+                  {language === 'ar' ? activeRecord.contentAr : activeRecord.contentEn}
+                </p>
+              )}
             </div>
           )}
 

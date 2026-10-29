@@ -25,6 +25,8 @@ import { AdminBackupTab } from './AdminBackupTab';
 import { AdminGiftCardsTab } from './AdminGiftCardsTab';
 import { AdminAuditLogTab } from './AdminAuditLogTab';
 import { AdminUsersTab } from './AdminUsersTab';
+import { AdminEmailTemplatesTab } from './AdminEmailTemplatesTab';
+import { Mail } from 'lucide-react';
 import { NotificationBell } from '../Toast/NotificationBell';
 
 import { 
@@ -128,7 +130,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 }) => {
   const { language, isRTL } = useLanguage();
 
-  type AdminTab = 'bookings' | 'users' | 'services' | 'content' | 'giftcards' | 'staff' | 'analytics' | 'audit' | 'security' | 'backup';
+  type AdminTab = 'bookings' | 'users' | 'services' | 'content' | 'giftcards' | 'staff' | 'analytics' | 'emails' | 'audit' | 'security' | 'backup';
   const [activeTab, setActiveTab] = useState<AdminTab>('bookings');
 
   // Admin credentials maintained in local state
@@ -340,6 +342,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <span>{language === 'ar' ? 'التقارير والإيرادات' : 'Analytics & Revenue'}</span>
           </button>
 
+          {/* 6.5. Dynamic Email Templates Tab */}
+          <button
+            id="admin-emails-tab-btn"
+            onClick={() => setActiveTab('emails')}
+            className={`px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer ${
+              activeTab === 'emails'
+                ? 'bg-gradient-to-r from-[#C59D4A] to-[#E5C378] text-[#0E0C09] shadow-lg font-black'
+                : 'bg-[#14120D] text-[#A89F91] border border-white/5 hover:border-white/20'
+            }`}
+          >
+            <Mail className="w-4 h-4 text-[#E5C378]" />
+            <span>{language === 'ar' ? 'قوالب البريد الإلكتروني' : 'Email Templates'}</span>
+          </button>
+
           {/* 7. Audit Log Tab (Records service price changes, staff updates, booking status, etc.) */}
           <button
             id="admin-audit-tab-btn"
@@ -454,6 +470,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               appointments={appointments}
               services={services}
             />
+          )}
+
+          {activeTab === 'emails' && (
+            <AdminEmailTemplatesTab onAddAuditLog={onAddAuditLog} />
           )}
 
           {activeTab === 'audit' && (

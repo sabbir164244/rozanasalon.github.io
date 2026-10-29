@@ -299,4 +299,47 @@ export interface ServiceNotificationRecord {
   date: string;
   time: string;
   totalSAR: number;
+  htmlBodyEn?: string;
+  htmlBodyAr?: string;
+  templateId?: string;
+}
+
+export interface EmailTemplateVariable {
+  key: string;
+  labelEn: string;
+  labelAr: string;
+  example: string;
+  descriptionEn: string;
+  descriptionAr: string;
+  required?: boolean;
+}
+
+export interface EmailTemplate {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  descriptionEn: string;
+  descriptionAr: string;
+  category: 'confirmation' | 'reminder' | 'update' | 'cancellation' | 'followup';
+  subjectEn: string;
+  subjectAr: string;
+  bodyTextEn: string;
+  bodyTextAr: string;
+  bodyHtmlEn: string;
+  bodyHtmlAr: string;
+  supportedVariables: string[];
+  isDefault?: boolean;
+  updatedAt?: string;
+}
+
+export interface CompiledEmail {
+  templateId: string;
+  templateCategory: string;
+  subject: string;
+  textBody: string;
+  htmlBody: string;
+  variablesUsed: Record<string, string>;
+  recipientEmail?: string;
+  recipientName?: string;
+  renderedAt: string;
 }
