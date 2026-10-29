@@ -133,12 +133,10 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenAdmin }) => {
             © {new Date().getFullYear()} {language === 'ar' ? 'صالون روزانة (فرع الشميسي). جميع الحقوق محفوظة.' : 'Rozana Salon (Al Shumaisi Branch). All Rights Reserved.'}
           </p>
 
-          <button
-            onClick={onOpenAdmin}
-            className="text-[11px] text-[#8C8477] hover:text-[#E5C378] transition-colors flex items-center gap-1 cursor-pointer"
-          >
-            <span>{language === 'ar' ? 'بوابة إدارة الصالون (كود PIN)' : 'Staff & Admin Portal (PIN)'}</span>
-          </button>
+          <div className="flex items-center gap-2 text-[11px] text-[#8C8477]">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/80"></span>
+            <span>{language === 'ar' ? 'الرياض • حي الشميسي' : 'Riyadh • Al Shumaisi Branch'}</span>
+          </div>
         </div>
       </div>
     </footer>

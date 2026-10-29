@@ -138,6 +138,53 @@ function MainSalonApp() {
     localStorage.setItem('rozana_appointments', JSON.stringify(appointments));
   }, [appointments]);
 
+  // Secret Admin Portal Listener (Tareeka 2)
+  // Triggers admin gateway via secret URL query (?admin=portal, ?admin=true), hash (#admin), or Ctrl+Shift+A
+  useEffect(() => {
+    const checkSecretAdminTrigger = () => {
+      if (typeof window === 'undefined') return;
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasAdminParam =
+        urlParams.get('admin') === 'portal' ||
+        urlParams.get('admin') === 'true' ||
+        urlParams.get('portal') === 'admin' ||
+        urlParams.get('portal') === 'director' ||
+        urlParams.has('admin');
+
+      const hasAdminHash =
+        window.location.hash.toLowerCase() === '#admin' ||
+        window.location.hash.toLowerCase() === '#admin-portal';
+
+      const hasAdminPath =
+        window.location.pathname.toLowerCase() === '/admin' ||
+        window.location.pathname.toLowerCase().startsWith('/admin/');
+
+      if (hasAdminParam || hasAdminHash || hasAdminPath) {
+        setShowAdminLogin(true);
+      }
+    };
+
+    checkSecretAdminTrigger();
+    window.addEventListener('popstate', checkSecretAdminTrigger);
+    window.addEventListener('hashchange', checkSecretAdminTrigger);
+
+    // Global Secret Shortcut: Ctrl + Shift + A (or Cmd + Shift + A)
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+        e.preventDefault();
+        setShowAdminLogin((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('popstate', checkSecretAdminTrigger);
+      window.removeEventListener('hashchange', checkSecretAdminTrigger);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   // Real-time Firestore sync for appointments
   useEffect(() => {
     try {
@@ -809,6 +856,9 @@ function MainSalonApp() {
         sessionStorage.removeItem('admin_credentials');
         sessionStorage.removeItem('admin_token');
         sessionStorage.removeItem('admin_auth');
+        if (window.location.search.includes('admin') || window.location.hash.includes('admin')) {
+          window.history.replaceState(null, '', window.location.pathname);
+        }
       } catch (e) {
         // Safe ignore
       }

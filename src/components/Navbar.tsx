@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { Sparkles, Menu, X, Globe, Shield, Calendar, Phone, MapPin, User, LogIn, Award } from 'lucide-react';
@@ -24,6 +24,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   const { language, toggleLanguage, isRTL, t } = useLanguage();
   const { currentUser, userProfile } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [logoClicks, setLogoClicks] = useState(0);
+  const logoTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const navItems = [
     { id: 'hero', label: t('nav.home') },
@@ -42,6 +44,26 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
     onNavigate(id);
     setMobileMenuOpen(false);
+  };
+
+  // Secret 3-Tap Logo Trigger (Method 2)
+  const handleLogoClick = () => {
+    handleNavClick('hero');
+    setLogoClicks((prev) => {
+      const next = prev + 1;
+      if (next >= 3) {
+        onOpenAdmin();
+        return 0;
+      }
+      return next;
+    });
+
+    if (logoTimerRef.current) {
+      clearTimeout(logoTimerRef.current);
+    }
+    logoTimerRef.current = setTimeout(() => {
+      setLogoClicks(0);
+    }, 2000);
   };
 
   return (
@@ -71,8 +93,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Haute Couture Brand Signboard */}
           <div 
             id="brand-logo"
-            onClick={() => handleNavClick('hero')}
+            onClick={handleLogoClick}
             className="flex items-center gap-3 cursor-pointer group select-none"
+            title="Rozana Salon Al Shumaisi"
           >
             <div className="relative w-10 h-10 rounded-full bg-gradient-to-tr from-[#1E1911] to-[#2E2415] border border-[#D4AF37]/50 flex items-center justify-center shadow-[0_0_15px_rgba(229,195,120,0.2)] group-hover:shadow-[0_0_25px_rgba(229,195,120,0.4)] transition-all duration-300">
               <Sparkles className="w-4 h-4 text-[#E5C378] group-hover:rotate-12 transition-transform duration-300" />
@@ -166,18 +189,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>{language === 'en' ? 'العربية' : 'English'}</span>
             </button>
 
-            {/* Admin Switcher */}
-            {!isAdminView ? (
-              <button
-                id="nav-admin-btn"
-                onClick={onOpenAdmin}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#18150F] border border-white/10 hover:border-[#D4AF37]/40 text-xs font-tajawal text-[#8C8477] hover:text-white transition-all cursor-pointer"
-                title={t('nav.admin')}
-              >
-                <Shield className="w-3.5 h-3.5 text-[#E5C378]" />
-                <span>{t('nav.admin')}</span>
-              </button>
-            ) : (
+            {/* Admin Exit Button (Only visible when active inside Admin mode) */}
+            {isAdminView && (
               <button
                 id="nav-exit-admin-btn"
                 onClick={onExitAdmin}
@@ -290,17 +303,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <Globe className="w-3.5 h-3.5" />
                 <span>{language === 'en' ? 'العربية' : 'English'}</span>
               </button>
-              <button
-                onClick={() => {
-                  if (isAdminView) onExitAdmin();
-                  else onOpenAdmin();
-                  setMobileMenuOpen(false);
-                }}
-                className="flex items-center gap-1.5 text-xs font-tajawal text-[#8C8477]"
-              >
-                <Shield className="w-3.5 h-3.5 text-[#E5C378]" />
-                <span>{isAdminView ? t('nav.exitAdmin') : t('nav.admin')}</span>
-              </button>
+              {isAdminView && (
+                <button
+                  onClick={() => {
+                    onExitAdmin();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-950/60 border border-rose-500/40 text-xs font-tajawal text-rose-200"
+                >
+                  <Shield className="w-3.5 h-3.5 text-rose-400" />
+                  <span>{t('nav.exitAdmin')}</span>
+                </button>
+              )}
             </div>
 
             <button
