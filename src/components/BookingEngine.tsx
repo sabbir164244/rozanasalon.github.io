@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
-import { Service, StaffMember, Appointment, GiftCard, WaitlistEntry } from '../types';
+import { Service, StaffMember, Appointment, GiftCard, WaitlistEntry, ServiceNotificationRecord } from '../types';
 import { OPERATING_HOURS_SLOTS } from '../data/mockData';
 import { db } from '../lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
+import { triggerBookingConfirmationNotifications, resendNotification } from '../lib/notificationService';
+import { ServiceNotificationCard } from './ServiceNotificationCard';
 import { 
   Check, 
   Calendar as CalendarIcon, 
@@ -107,6 +109,10 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
   // Validation / feedback
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [confirmedBooking, setConfirmedBooking] = useState<Appointment | null>(null);
+  const [notificationResult, setNotificationResult] = useState<{
+    smsRecord?: ServiceNotificationRecord;
+    emailRecord?: ServiceNotificationRecord;
+  } | null>(null);
 
   // Sync when initialSelectedService or services change from parent/admin edits
   useEffect(() => {
@@ -244,6 +250,30 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
     onBookingComplete(newAppointment);
     setConfirmedBooking(newAppointment);
     triggerConfetti();
+
+    // Automated Service Notification Trigger (Email & Simulated SMS via Mock Notification Utility)
+    triggerBookingConfirmationNotifications(newAppointment, {
+      fallbackEmail: customerEmail.trim() || undefined
+    })
+      .then((res) => {
+        setNotificationResult(res);
+      })
+      .catch((err) => {
+        console.warn('Failed to dispatch automated notifications:', err);
+      });
+  };
+
+  const handleResendNotification = async (channel: 'sms' | 'email') => {
+    const target = channel === 'sms' ? notificationResult?.smsRecord : notificationResult?.emailRecord;
+    if (target) {
+      const resent = await resendNotification(target.id);
+      if (resent) {
+        setNotificationResult((prev) => ({
+          ...prev,
+          [channel === 'sms' ? 'smsRecord' : 'emailRecord']: resent
+        }));
+      }
+    }
   };
 
   // Waitlist Submission
@@ -297,6 +327,7 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
 
   const handleResetForm = () => {
     setConfirmedBooking(null);
+    setNotificationResult(null);
     setCurrentStep(1);
     setCustomerName('');
     setCustomerPhone('');
@@ -960,6 +991,13 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                   </div>
                 </div>
               </div>
+
+              {/* Automated Service Notification Trigger Result (Mock Utility SMS & Email) */}
+              <ServiceNotificationCard
+                smsRecord={notificationResult?.smsRecord}
+                emailRecord={notificationResult?.emailRecord}
+                onResend={handleResendNotification}
+              />
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">

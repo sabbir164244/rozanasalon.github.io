@@ -300,6 +300,20 @@ function MainSalonApp() {
     } catch (err) {
       console.warn('Firestore appointment save notice:', err);
     }
+
+    // Log automated service notification dispatch in audit logs
+    logAdminAction({
+      category: 'bookings',
+      actionType: 'notification_dispatched',
+      titleAr: `إرسال إشعار الخدمة الفوري #${newAppointment.referenceId}`,
+      titleEn: `Service Notification Dispatched #${newAppointment.referenceId}`,
+      detailsAr: `تم إرسال إشعار التأكيد التلقائي (SMS + Email) للعميلة ${newAppointment.customerName} على الجوال ${newAppointment.customerPhone}.`,
+      detailsEn: `Automated confirmation notification (SMS + Email) dispatched to ${newAppointment.customerName} (${newAppointment.customerPhone}).`,
+      actor: 'Notification Dispatcher',
+      targetId: newAppointment.id,
+      targetName: `Booking #${newAppointment.referenceId}`,
+      severity: 'success'
+    });
   };
 
   // When customer signs up for Waitlist

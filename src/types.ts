@@ -275,3 +275,28 @@ export interface AuditLogEntry {
   newValue?: string;
   severity?: 'info' | 'warning' | 'success' | 'alert';
 }
+
+export type NotificationChannel = 'sms' | 'email';
+export type NotificationStatus = 'queued' | 'sending' | 'delivered' | 'failed';
+
+export interface ServiceNotificationRecord {
+  id: string;
+  appointmentId: string;
+  referenceId: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  channel: NotificationChannel;
+  senderId: string; // e.g. "RozanaVIP" or "concierge@rozanasalon.sa"
+  subject?: string;
+  contentEn: string;
+  contentAr: string;
+  status: NotificationStatus;
+  sentAt: string;
+  gatewayRef: string;
+  serviceNameEn: string;
+  serviceNameAr: string;
+  date: string;
+  time: string;
+  totalSAR: number;
+}
